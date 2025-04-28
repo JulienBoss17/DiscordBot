@@ -9,10 +9,6 @@ const { clear } = require('console');
 const { EmbedBuilder } = require('discord.js');
 const { formatDistanceToNow } = require('date-fns');
 const { fr } = require('date-fns/locale');
-const { saveVoiceTime, checkWeeklyReset, voiceTimeMap } = require('./utils/VoiceUtils');
-const globalTimeFile = './vocalTime.json';
-
-
 
 // IDs importants
 const clientId = process.env.CLIENT_ID;
@@ -65,10 +61,7 @@ const commands = [
     .addIntegerOption(option => option.setName('nombre').setDescription('Le nombre de messages à effacer').setRequired(true)),
   new SlashCommandBuilder()
     .setName('classement')
-    .setDescription('Affiche le classement des membres en fonction du temps passé en vocal'),
-  new SlashCommandBuilder()
-    .setName('ping')
-    .setDescription('Affiche la liste des commandes disponibles'),
+    .setDescription('Affiche le classement des membres en fonction du temps passé en vocal')
 ];
 
 // Enregistrement des slash commands
@@ -174,7 +167,6 @@ client.on('interactionCreate', async interaction => {
     warn: 'KickMembers',
     dewarn: 'KickMembers',
     clear: 'ManageMessages',
-    ping: 'SendMessages',
   };
 
   const permission = permsRequises[commandName];
@@ -340,52 +332,105 @@ client.on('interactionCreate', async interaction => {
   }
 });
 
-// Gestion des changements de salons vocaux
+const voiceTimeMap = new Map();
+
 client.on('voiceStateUpdate', (oldState, newState) => {
   const userId = newState.id;
+  
   const oldChannel = oldState.channelId;
   const newChannel = newState.channelId;
 
+  // Récupérer le salon AFK depuis le serveur
   const afkChannel = newState.guild.channels.cache.find(ch => ch.name === 'ᴀғᴋ');
 
-  // Cas où on rejoint un salon vocal normal
+  if (!afkChannel) {
+    console.log('Salon AFK non trouvé');
+    return;
+  }
+
+  // DEBUG : On affiche les salons avant et après le changement
+  console.log(`[DEBUG] ${userId} a changé : ${oldChannel} => ${newChannel}`);
+  console.log(`[DEBUG] Ancien salon : ${oldChannel}, Nouveau salon : ${newChannel}`);
+
+  // --- Cas 1 : Rejoint un salon vocal
   if (!oldChannel && newChannel) {
-    if (newChannel !== afkChannel.id) { // Pas un salon AFK
+    if (newChannel !== afkChannel.id) { // Si ce n'est PAS l'AFK
       console.log(`[+] ${userId} a rejoint un vocal normal.`);
       voiceTimeMap.set(userId, Date.now());
     } else {
       console.log(`[~] ${userId} a rejoint le salon AFK. Pas de chrono.`);
     }
+    return;
   }
 
-  // Cas où on quitte un salon vocal
+  // --- Cas 2 : Quitte un salon vocal
   if (oldChannel && !newChannel) {
-    if (oldChannel !== afkChannel.id) { // Pas un salon AFK
+    if (oldChannel !== afkChannel.id) {
       console.log(`[-] ${userId} quitte un vocal normal.`);
-      saveVoiceTime(userId, globalTimeFile);  // Sauvegarder dans le fichier global
+      saveVoiceTime(userId);
     } else {
       console.log(`[-] ${userId} quitte l'AFK. Pas de sauvegarde.`);
     }
     voiceTimeMap.delete(userId);
+    return;
   }
 
-  // Cas où on change de salon vocal
+  // --- Cas 3 : Change de salon vocal
   if (oldChannel && newChannel && oldChannel !== newChannel) {
-    if (oldChannel !== afkChannel.id) { // Quitte un salon vocal normal
-      console.log(`[-] ${userId} quitte un vocal normal.`);
-      saveVoiceTime(userId, globalTimeFile);
+    if (oldChannel === afkChannel.id) {
+      console.log(`[+] ${userId} passe de l'AFK à un salon normal.`);
+      voiceTimeMap.set(userId, Date.now());
+      return;
     }
 
-    if (newChannel !== afkChannel.id) { // Rejoint un salon vocal normal
-      console.log(`[+] ${userId} rejoint un vocal normal.`);
-      voiceTimeMap.set(userId, Date.now());
-    } else {  // Salon AFK
-      console.log(`[~] ${userId} a rejoint le salon AFK. Pas de chrono.`);
+    if (newChannel === afkChannel.id) {
+      console.log(`[~] ${userId} passe d'un salon normal à l'AFK.`);
+      saveVoiceTime(userId);
+      voiceTimeMap.delete(userId);
+      return;
     }
+
+    console.log(`[↔] ${userId} change de salon normal.`);
+    saveVoiceTime(userId);
+    voiceTimeMap.set(userId, Date.now());
+    return;
   }
 });
 
-checkWeeklyReset(generateWeeklyRanking); 
+
+// Fonction pour sauvegarder le temps passé
+function saveVoiceTime(userId) {
+  const joinTime = voiceTimeMap.get(userId);
+  if (!joinTime) return;
+
+  const timeSpent = Date.now() - joinTime;
+  const seconds = Math.floor(timeSpent / 1000);
+
+  const dataFile = './vocalTime.json';
+  let data = {};
+
+  if (fs.existsSync(dataFile)) {
+    try {
+      const fileContent = fs.readFileSync(dataFile, 'utf8');
+      if (fileContent.trim()) {
+        data = JSON.parse(fileContent);
+      }
+    } catch (error) {
+      console.error("❌ Erreur de parsing du fichier vocalTime.json");
+    }
+  }
+
+  // Si l'utilisateur a quitté un salon normal, on sauvegarde son temps
+  data[userId] = (data[userId] || 0) + seconds;
+  fs.writeFileSync(dataFile, JSON.stringify(data, null, 2), 'utf8');
+
+  console.log(`✅ Temps sauvegardé pour ${userId}: +${seconds}s`);
+  voiceTimeMap.delete(userId); // Nettoyage
+}
+
+
+
+const blockedUsers = new Set();
 
 // Lancement du bot
 client.once('ready', () => {
