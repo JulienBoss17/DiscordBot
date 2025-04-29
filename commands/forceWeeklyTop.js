@@ -9,6 +9,11 @@ module.exports = {
     .setDescription('📢 Force l\'envoi du Top 5 Vocal de la semaine !'),
 
   async execute(interaction) {
+    // Vérifier les permissions de l'utilisateur
+    if (!interaction.member.permissions.has('ADMINISTRATOR')) {
+      return interaction.reply({ content: '❌ Tu n\'as pas les permissions nécessaires pour utiliser cette commande.', ephemeral: true });
+    }
+
     const weeklyFilePath = path.join(__dirname, '../weeklyVocalTime.json');
     const CHANNEL_NAME = 'ʙᴏᴛ'; // 🔥 même nom que dans le reset automatique
 
