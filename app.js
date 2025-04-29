@@ -10,6 +10,7 @@ const { EmbedBuilder } = require('discord.js');
 const { formatDistanceToNow } = require('date-fns');
 const { fr } = require('date-fns/locale');
 
+
 // IDs importants
 const clientId = process.env.CLIENT_ID;
 const guildId = process.env.GUILD_ID;
@@ -19,64 +20,6 @@ if (!token || !clientId || !guildId) {
   console.error("❌ Vérifie que TOKEN, CLIENT_ID et GUILD_ID sont bien définis dans ton fichier .env");
   process.exit(1);
 }
-
-// Slash commands à enregistrer
-const commands = [
-  new SlashCommandBuilder()
-    .setName('ban')
-    .setDescription('Bannir un utilisateur')
-    .addUserOption(option => option.setName('utilisateur').setDescription('L’utilisateur à bannir').setRequired(true)),
-  new SlashCommandBuilder()
-    .setName('deban')
-    .setDescription('Débannir un utilisateur')
-    .addUserOption(option => option.setName('utilisateur').setDescription('L’utilisateur à débannir').setRequired(true)),
-  new SlashCommandBuilder()
-    .setName('vocal')
-    .setDescription('Voir le temps passé en vocal')
-    .addUserOption(option => option.setName('utilisateur').setDescription('L’utilisateur à consulter')),
-  new SlashCommandBuilder()
-    .setName('mute')
-    .setDescription('Muter un utilisateur pour une durée')
-    .addUserOption(option => option.setName('utilisateur').setDescription('L’utilisateur à mute').setRequired(true))
-    .addStringOption(option => option.setName('durée').setDescription('Ex: 10m, 2h, 30s').setRequired(true)),
-  new SlashCommandBuilder()
-    .setName('demute')
-    .setDescription('Démuter un utilisateur')
-    .addUserOption(option => option.setName('utilisateur').setDescription('L’utilisateur à démute').setRequired(true)),
-  new SlashCommandBuilder()
-    .setName('sondage')
-    .setDescription('Créer un sondage')
-    .addStringOption(option => option.setName('question').setDescription('La question du sondage').setRequired(true)),
-  new SlashCommandBuilder()
-    .setName('warn')
-    .setDescription('Avertir un utilisateur')
-    .addUserOption(option => option.setName('utilisateur').setDescription('L’utilisateur à avertir').setRequired(true)),
-  new SlashCommandBuilder()
-    .setName('dewarn')
-    .setDescription('Enlever un avertissement à un utilisateur')
-    .addUserOption(option => option.setName('utilisateur').setDescription('L’utilisateur dont l’avertissement sera enlevé').setRequired(true)),
-  new SlashCommandBuilder()
-    .setName('clear')
-    .setDescription('Effacer un nombre spécifique de messages')
-    .addIntegerOption(option => option.setName('nombre').setDescription('Le nombre de messages à effacer').setRequired(true)),
-  new SlashCommandBuilder()
-    .setName('classement')
-    .setDescription('Affiche le classement des membres en fonction du temps passé en vocal')
-];
-
-// Enregistrement des slash commands
-const rest = new REST({ version: '9' }).setToken(token);
-(async () => {
-  try {
-    console.log('✅ Enregistrement des commandes slash...');
-    await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
-      body: commands.map(command => command.toJSON()),
-    });
-    console.log('✅ Commandes slash enregistrées avec succès!');
-  } catch (error) {
-    console.error('❌ Erreur enregistrement slash commands :', error);
-  }
-})();
 
 // Initialisation du bot
 const client = new Client({
@@ -89,6 +32,39 @@ const client = new Client({
   ],
   partials: [Partials.Channel]
 });
+
+client.commands = new Map();
+
+const commandsPath = path.join(__dirname, 'commands');
+const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+
+const commands = []; // Initialisation du tableau de commandes
+
+for (const file of commandFiles) {
+  const command = require(path.join(commandsPath, file));
+  if (command.data) {
+    commands.push(command.data.toJSON()); // Ajoute la commande au tableau
+    client.commands.set(command.data.name, command); // Stocke la commande pour l'exécution
+  } else {
+    console.warn(`⚠️ La commande ${file} ne contient pas 'data'.`);
+  }
+}
+
+
+const rest = new REST({ version: '9' }).setToken(token);
+
+(async () => {
+  try {
+    console.log('✅ Enregistrement des commandes slash...');
+    await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
+      body: commands, // Ici, commands doit être un tableau contenant les commandes
+    });
+    console.log('✅ Commandes slash enregistrées avec succès!');
+  } catch (error) {
+    console.error('❌ Erreur enregistrement slash commands :', error);
+  }
+})();
+
 
 // message de bienvenue
 client.on('guildMemberAdd', async (member) => {
@@ -151,184 +127,18 @@ client.on('guildMemberRemove', async (member) => {
   channel.send({ embeds: [leaveEmbed] });
 });
 
-// Gestion des slash commands
+// Gestion des interactions
 client.on('interactionCreate', async interaction => {
   if (!interaction.isCommand()) return;
 
-  const { commandName, options } = interaction;
-  const member = interaction.member;
-
-  const permsRequises = {
-    ban: 'BanMembers',
-    deban: 'BanMembers',
-    mute: 'ModerateMembers',
-    demute: 'ModerateMembers',
-    sondage: 'ManageMessages',
-    warn: 'KickMembers',
-    dewarn: 'KickMembers',
-    clear: 'ManageMessages',
-  };
-
-  const permission = permsRequises[commandName];
-  if (permission && !member.permissions.has(permission)) {
-    return interaction.reply({ content: "❌ Tu n'as pas la permission d'utiliser cette commande.", ephemeral: true });
-  }
+  const command = client.commands.get(interaction.commandName);
+  if (!command) return;
 
   try {
-    if (commandName === 'ban') {
-      const user = options.getUser('utilisateur');
-      const memberToBan = interaction.guild.members.cache.get(user.id);
-      if (!memberToBan) return interaction.reply("Utilisateur introuvable.");
-      await memberToBan.ban();
-      return interaction.reply(`${user.tag} a été **banni**.`);
-    }
-
-    if (commandName === 'clear') {
-      const number = options.getInteger('nombre');
-      if (number < 1 || number > 100) {
-        return interaction.reply({ content: "❌ Veuillez spécifier un nombre entre 1 et 100.", ephemeral: true });
-      }
-
-      try {
-        const fetchedMessages = await interaction.channel.messages.fetch({ limit: number });
-        await interaction.channel.bulkDelete(fetchedMessages);
-        return interaction.reply({ content: `✅ ${number} messages ont été supprimés.`, ephemeral: true });
-      } catch (error) {
-        console.error("Erreur lors de la suppression des messages : ", error);
-        return interaction.reply({ content: "❌ Une erreur est survenue lors de la suppression des messages.", ephemeral: true });
-      }
-    }
-
-    if (commandName === 'deban') {
-      const user = options.getUser('utilisateur');
-      await interaction.guild.bans.remove(user.id);
-      return interaction.reply(`${user.tag} a été **débanni**.`);
-    }
-
-    if (commandName === 'mute') {
-      const user = options.getUser('utilisateur');
-      const durationStr = options.getString('durée');
-      const memberToMute = interaction.guild.members.cache.get(user.id);
-      if (!memberToMute) return interaction.reply("Utilisateur introuvable.");
-
-      const match = durationStr.match(/^(\d+)(s|m|h)$/);
-      if (!match) return interaction.reply("⛔ Format invalide. Utilise par exemple 10m, 2h, ou 30s.");
-      const [, value, unit] = match;
-      const multiplier = unit === 's' ? 1000 : unit === 'm' ? 60_000 : 3_600_000;
-      const durationMs = parseInt(value) * multiplier;
-
-      await memberToMute.timeout(durationMs);
-      return interaction.reply(`${user.tag} a été **muté pendant ${value}${unit}**.`);
-    }
-
-    if (commandName === 'vocal') {
-      const target = options.getUser('utilisateur') || interaction.user;
-      const dataFile = './vocalTime.json';
-      const data = fs.existsSync(dataFile) ? JSON.parse(fs.readFileSync(dataFile)) : {};
-      const totalSeconds = data[target.id] || 0;
-
-      const hours = Math.floor(totalSeconds / 3600);
-      const minutes = Math.floor((totalSeconds % 3600) / 60);
-      const seconds = totalSeconds % 60;
-
-      const timeString = `${hours}h ${minutes}m ${seconds}s`;
-
-      return interaction.reply(`🕒 ${target.tag} a passé **${timeString}** en vocal.`);
-    }
-
-    if (commandName === 'classement') {
-      const dataFile = './vocalTime.json';
-      if (!fs.existsSync(dataFile)) {
-        return interaction.reply("❌ Aucune donnée de temps vocal disponible.");
-      }
-
-      const data = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
-      const sortedUsers = Object.entries(data)
-        .map(([userId, time]) => ({ userId, time }))
-        .sort((a, b) => b.time - a.time)
-        .slice(0, 10);
-
-      if (sortedUsers.length === 0) {
-        return interaction.reply("❌ Aucune donnée sur le temps vocal.");
-      }
-
-      const leaderboard = sortedUsers
-        .map(({ userId, time }, index) => {
-          const minutes = Math.floor(time / 60);
-          const seconds = time % 60;
-          return `${index + 1}. <@${userId}> - ${minutes}m ${seconds}s`;
-        })
-        .join('\n');
-
-      const embed = new EmbedBuilder()
-        .setColor(0x1E2A78)
-        .setTitle("🏆 Classement des membres en vocal")
-        .setDescription(leaderboard)
-        .setFooter({ text: 'Forge ta légende, invocateur !' })
-        .setTimestamp();
-
-      return interaction.reply({ embeds: [embed] });
-    }
-
-    if (commandName === 'demute') {
-      const user = options.getUser('utilisateur');
-      const memberToUnmute = interaction.guild.members.cache.get(user.id);
-      if (!memberToUnmute) return interaction.reply("Utilisateur introuvable.");
-      await memberToUnmute.timeout(null);
-      return interaction.reply(`${user.tag} a été **démute**.`);
-    }
-
-    if (commandName === 'sondage') {
-      const question = options.getString('question');
-      const embed = {
-        title: "📊 Nouveau sondage",
-        description: question,
-        color: 0x5865F2,
-        footer: { text: `Par ${interaction.user.tag}` },
-      };
-      const pollMessage = await interaction.reply({ embeds: [embed], fetchReply: true });
-      await pollMessage.react("👍");
-      await pollMessage.react("👎");
-    }
-
-    if (commandName === 'warn') {
-      const user = options.getUser('utilisateur');
-      const memberToWarn = interaction.guild.members.cache.get(user.id);
-      if (!memberToWarn) return interaction.reply("Utilisateur introuvable.");
-
-      const warningsFile = './warnings.json';
-      const warningsData = fs.existsSync(warningsFile) ? JSON.parse(fs.readFileSync(warningsFile)) : {};
-
-      if (!warningsData[user.id]) warningsData[user.id] = 0;
-      warningsData[user.id]++;
-
-      fs.writeFileSync(warningsFile, JSON.stringify(warningsData));
-
-      return interaction.reply(`${user.tag} a été **averti**. (Avertissements: ${warningsData[user.id]})`);
-    }
-
-    if (commandName === 'dewarn') {
-      const user = options.getUser('utilisateur');
-      const memberToDeWarn = interaction.guild.members.cache.get(user.id);
-      if (!memberToDeWarn) return interaction.reply("Utilisateur introuvable.");
-
-      const warningsFile = './warnings.json';
-      const warningsData = fs.existsSync(warningsFile) ? JSON.parse(fs.readFileSync(warningsFile)) : {};
-
-      if (!warningsData[user.id] || warningsData[user.id] === 0) {
-        return interaction.reply(`${user.tag} n'a aucun avertissement à retirer.`);
-      }
-
-      warningsData[user.id]--;
-
-      fs.writeFileSync(warningsFile, JSON.stringify(warningsData));
-
-      return interaction.reply(`${user.tag} a eu un avertissement retiré. (Avertissements restants: ${warningsData[user.id]})`);
-    }
-
-  } catch (err) {
-    console.error(err);
-    interaction.reply({ content: "❌ Une erreur est survenue.", ephemeral: true });
+    await command.execute(interaction);
+  } catch (error) {
+    console.error(error);
+    await interaction.reply({ content: '❌ Une erreur est survenue lors de l\'exécution de la commande.', ephemeral: true });
   }
 });
 
