@@ -36,7 +36,7 @@ function resetWeeklyVocalTime(client) {
     // --- Embed
     const embed = new EmbedBuilder()
       .setColor(0x00AE86)
-      .setTitle('🏆 Top 5 Vocal de la Semaine')
+      .setTitle('🏆 Top 5 des Cracks de la Semaine')
       .setDescription(topList || 'Personne n\'a été actif cette semaine...')
       .setTimestamp();
 
