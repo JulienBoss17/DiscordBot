@@ -161,10 +161,6 @@ client.on('voiceStateUpdate', (oldState, newState) => {
     return;
   }
 
-  // DEBUG : On affiche les salons avant et après le changement
-  console.log(`[DEBUG] ${userId} a changé : ${oldChannel} => ${newChannel}`);
-  console.log(`[DEBUG] Ancien salon : ${oldChannel}, Nouveau salon : ${newChannel}`);
-
   // --- Cas 1 : Rejoint un salon vocal
   if (!oldChannel && newChannel) {
     if (newChannel !== afkChannel.id) { // Si ce n'est PAS l'AFK
