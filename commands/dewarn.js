@@ -1,29 +1,48 @@
-// dewarn.js
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const fs = require('fs');
+
 module.exports = {
-  name: 'dewarn',
-  description: 'Retirer un avertissement d\'un utilisateur',
-  async execute(message, args) {
-    // Vérifier si l'utilisateur a la permission de gérer les avertissements
-    if (!message.member.permissions.has('MANAGE_MESSAGES')) {
-      return message.reply("❌ Tu n'as pas la permission de gérer les avertissements.");
+  data: new SlashCommandBuilder()
+    .setName('dewarn')
+    .setDescription('Retirer un avertissement à un utilisateur')
+    .addUserOption(option =>
+      option.setName('utilisateur')
+        .setDescription('Utilisateur à dé-warn')
+        .setRequired(true))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
+  async execute(interaction) {
+    const user = interaction.options.getUser('utilisateur');
+    const filePath = './warnings.json';
+
+    // Vérification si le fichier existe et est lisible
+    let warnData = {};
+    if (fs.existsSync(filePath)) {
+      try {
+        warnData = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+      } catch (error) {
+        console.error('❌ Erreur de lecture du fichier warnings.json:', error);
+        return interaction.reply({ content: '❌ Une erreur est survenue lors de la lecture des avertissements.', ephemeral: true });
+      }
+    } else {
+      console.log('⚠️ Le fichier warnings.json n\'existe pas. Il sera créé à la prochaine modification.');
     }
 
-    const user = message.mentions.users.first();
-    if (!user) {
-      return message.reply('❌ Veuillez mentionner un utilisateur dont vous voulez retirer l\'avertissement.');
-    }
-
-    // Charger le fichier de sauvegarde des avertissements
-    const warnData = JSON.parse(fs.readFileSync('./warnings.json', 'utf-8'));
-
+    // Vérification si l'utilisateur a des avertissements
     if (!warnData[user.id] || warnData[user.id] === 0) {
-      return message.reply('❌ Cet utilisateur n\'a aucun avertissement.');
+      return interaction.reply({ content: `❌ Cet utilisateur n'a aucun avertissement.`, ephemeral: true });
     }
 
-    // Supprimer un avertissement
+    // Retirer un avertissement
     warnData[user.id]--;
-    fs.writeFileSync('./warnings.json', JSON.stringify(warnData));
 
-    message.reply(`✅ Un avertissement a été retiré de ${user.tag}.`);
-  },
+    // Sauvegarde des modifications dans le fichier
+    try {
+      fs.writeFileSync(filePath, JSON.stringify(warnData, null, 2), 'utf-8');
+    } catch (error) {
+      console.error('❌ Erreur de sauvegarde dans le fichier warnings.json:', error);
+      return interaction.reply({ content: '❌ Une erreur est survenue lors de la sauvegarde des avertissements.', ephemeral: true });
+    }
+
+    await interaction.reply(`✅ Un avertissement a été retiré à ${user.tag}.`);
+  }
 };

@@ -1,36 +1,31 @@
-// sondage.js
+const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
+
 module.exports = {
-  name: 'sondage',
-  description: 'Créer un sondage interactif',
-  async execute(message, args) {
-    // Vérifier si l'utilisateur a la permission de gérer les messages
-    if (!message.member.permissions.has('MANAGE_MESSAGES')) {
-      return message.reply("❌ Tu n'as pas la permission de gérer les messages.");
-    }
+  data: new SlashCommandBuilder()
+    .setName('sondage')
+    .setDescription('Créer un sondage interactif')
+    .addStringOption(option =>
+      option.setName('question')
+        .setDescription('La question du sondage')
+        .setRequired(true))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+  async execute(interaction) {
+    const question = interaction.options.getString('question');
 
-    const pollQuestion = args.join(' ');
-    if (!pollQuestion) {
-      return message.reply("❌ Veuillez fournir une question pour le sondage.");
-    }
-
-    // Créer le sondage
-    const pollEmbed = {
-      color: 0x0099ff,
-      title: "Sondage",
-      description: pollQuestion,
-      footer: {
-        text: `Sondage créé par ${message.author.tag}`,
-      },
-    };
+    const embed = new EmbedBuilder()
+      .setColor(0x0099ff)
+      .setTitle('📊 Sondage')
+      .setDescription(question)
+      .setFooter({ text: `Sondage créé par ${interaction.user.tag}` });
 
     try {
-      const pollMessage = await message.channel.send({ embeds: [pollEmbed] });
+      const pollMessage = await interaction.channel.send({ embeds: [embed] });
       await pollMessage.react('👍');
       await pollMessage.react('👎');
-      message.reply("✅ Sondage créé avec succès.");
-    } catch (err) {
-      console.error(err);
-      message.reply('❌ Une erreur est survenue lors de la création du sondage.');
+      await interaction.reply({ content: '✅ Sondage créé avec succès.', ephemeral: true });
+    } catch (error) {
+      console.error(error);
+      await interaction.reply({ content: '❌ Erreur lors de la création du sondage.', ephemeral: true });
     }
-  },
+  }
 };

@@ -1,31 +1,33 @@
-// mute.js
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+
 module.exports = {
-  name: 'mute',
-  description: 'Mute un utilisateur',
-  async execute(message, args) {
-    // Vérifier si l'utilisateur a la permission de gérer les rôles
-    if (!message.member.permissions.has('MANAGE_ROLES')) {
-      return message.reply("❌ Tu n'as pas la permission de gérer les rôles.");
-    }
+  data: new SlashCommandBuilder()
+    .setName('mute')
+    .setDescription('Mute un utilisateur')
+    .addUserOption(option =>
+      option.setName('utilisateur')
+        .setDescription('Utilisateur à mute')
+        .setRequired(true))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
+  async execute(interaction) {
+    const user = interaction.options.getUser('utilisateur');
+    const member = await interaction.guild.members.fetch(user.id);
+    let muteRole = interaction.guild.roles.cache.find(role => role.name === 'Muted');
 
-    const user = message.mentions.users.first();
-    if (!user) {
-      return message.reply('❌ Veuillez mentionner un utilisateur à muter.');
+    if (!muteRole) {
+      muteRole = await interaction.guild.roles.create({
+        name: 'Muted',
+        color: '#555555',
+        permissions: []
+      });
     }
-
-    const member = message.guild.members.cache.get(user.id);
-    const muteRole = await message.guild.roles.create({
-      name: 'Muted',
-      color: '#555555', 
-      permissions: []
-    });
 
     try {
       await member.roles.add(muteRole);
-      message.reply(`✅ ${user.tag} a été muté.`);
-    } catch (err) {
-      console.error(err);
-      message.reply('❌ Impossible de muter l\'utilisateur.');
+      await interaction.reply(`✅ ${user.tag} a été muté.`);
+    } catch (error) {
+      console.error(error);
+      await interaction.reply({ content: '❌ Impossible de muter l\'utilisateur.', ephemeral: true });
     }
-  },
+  }
 };

@@ -1,21 +1,57 @@
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const fs = require('fs');
+
 module.exports = {
-    name: 'warn',
-    async execute(message, args) {
-      if (!message.member.permissions.has('ModerateMembers')) {
-        return message.reply("Tu n'as pas la permission de faire ça.");
-      }
-  
-      const user = message.mentions.members.first();
-      const reason = args.slice(1).join(' ') || "Aucune raison donnée";
-  
-      if (!user) return message.reply("Mentionne un utilisateur à avertir.");
-  
+  data: new SlashCommandBuilder()
+    .setName('warn')
+    .setDescription('Avertir un utilisateur')
+    .addUserOption(option =>
+      option.setName('utilisateur')
+        .setDescription('Utilisateur à avertir')
+        .setRequired(true))
+    .addStringOption(option =>
+      option.setName('raison')
+        .setDescription('Raison de l\'avertissement')
+        .setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
+  async execute(interaction) {
+    const user = interaction.options.getUser('utilisateur');
+    const reason = interaction.options.getString('raison') || 'Aucune raison donnée';
+    const filePath = './warnings.json';
+
+    // Vérifier si le fichier existe et le lire
+    let warnData = {};
+    if (fs.existsSync(filePath)) {
       try {
-        await user.send(`⚠️ Tu as été averti(e) sur ${message.guild.name} : ${reason}`);
-        message.channel.send(`⚠️ ${user.user.tag} a été averti.`)
-      } catch {
-        message.reply("Impossible d'envoyer un message à cet utilisateur.");
+        warnData = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+      } catch (error) {
+        console.error('Erreur de lecture du fichier warnings.json:', error);
       }
+    } else {
+      console.log('Le fichier warnings.json n\'existe pas, il sera créé.');
     }
-  };
-  
+
+    // Ajouter ou incrémenter l'avertissement pour l'utilisateur
+    if (!warnData[user.id]) {
+      warnData[user.id] = 1; // Si l'utilisateur n'a pas encore d'avertissement, il en reçoit un
+    } else {
+      warnData[user.id]++; // Sinon, on incrémente le nombre d'avertissements
+    }
+
+    // Sauvegarder les avertissements dans le fichier
+    try {
+      fs.writeFileSync(filePath, JSON.stringify(warnData, null, 2), 'utf-8');
+    } catch (error) {
+      console.error('Erreur d\'écriture dans le fichier warnings.json:', error);
+      return interaction.reply({ content: '❌ Une erreur est survenue lors de la sauvegarde de l\'avertissement.', ephemeral: true });
+    }
+
+    // Envoi du message à l'utilisateur
+    try {
+      await user.send(`⚠️ Tu as été averti(e) sur ${interaction.guild.name} : ${reason}`);
+      await interaction.reply(`⚠️ ${user.tag} a été averti. Raison : ${reason}`);
+    } catch {
+      await interaction.reply({ content: '❌ Impossible d\'envoyer un message à cet utilisateur.', ephemeral: true });
+    }
+  }
+};
