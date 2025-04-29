@@ -9,6 +9,9 @@ const { clear } = require('console');
 const { EmbedBuilder } = require('discord.js');
 const { formatDistanceToNow } = require('date-fns');
 const { fr } = require('date-fns/locale');
+const { saveVoiceTime } = require('./utils/SaveVoiceTime');
+const { resetWeeklyVocalTime } = require('./utils/ResetWeeklyVocalTime');
+
 
 
 // IDs importants
@@ -177,7 +180,8 @@ client.on('voiceStateUpdate', (oldState, newState) => {
   if (oldChannel && !newChannel) {
     if (oldChannel !== afkChannel.id) {
       console.log(`[-] ${userId} quitte un vocal normal.`);
-      saveVoiceTime(userId);
+      saveVoiceTime(userId, voiceTimeMap);
+;
     } else {
       console.log(`[-] ${userId} quitte l'AFK. Pas de sauvegarde.`);
     }
@@ -195,48 +199,18 @@ client.on('voiceStateUpdate', (oldState, newState) => {
 
     if (newChannel === afkChannel.id) {
       console.log(`[~] ${userId} passe d'un salon normal à l'AFK.`);
-      saveVoiceTime(userId);
+      saveVoiceTime(userId, voiceTimeMap);
+;
       voiceTimeMap.delete(userId);
       return;
     }
 
     console.log(`[↔] ${userId} change de salon normal.`);
-    saveVoiceTime(userId);
+    saveVoiceTime(userId, voiceTimeMap);;
     voiceTimeMap.set(userId, Date.now());
     return;
   }
 });
-
-
-// Fonction pour sauvegarder le temps passé
-function saveVoiceTime(userId) {
-  const joinTime = voiceTimeMap.get(userId);
-  if (!joinTime) return;
-
-  const timeSpent = Date.now() - joinTime;
-  const seconds = Math.floor(timeSpent / 1000);
-
-  const dataFile = './vocalTime.json';
-  let data = {};
-
-  if (fs.existsSync(dataFile)) {
-    try {
-      const fileContent = fs.readFileSync(dataFile, 'utf8');
-      if (fileContent.trim()) {
-        data = JSON.parse(fileContent);
-      }
-    } catch (error) {
-      console.error("❌ Erreur de parsing du fichier vocalTime.json");
-    }
-  }
-
-  // Si l'utilisateur a quitté un salon normal, on sauvegarde son temps
-  data[userId] = (data[userId] || 0) + seconds;
-  fs.writeFileSync(dataFile, JSON.stringify(data, null, 2), 'utf8');
-
-  console.log(`✅ Temps sauvegardé pour ${userId}: +${seconds}s`);
-  voiceTimeMap.delete(userId); // Nettoyage
-}
 
 
 
@@ -245,6 +219,7 @@ const blockedUsers = new Set();
 // Lancement du bot
 client.once('ready', () => {
   console.log(`✅ Connecté en tant que ${client.user.tag}`);
+  resetWeeklyVocalTime(client); // <- ICI !
 });
 
 client.login(token)

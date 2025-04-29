@@ -2,7 +2,8 @@
   "dependencies": {
     "date-fns": "^4.1.0",
     "discord.js": "^14.18.0",
-    "dotenv": "^16.5.0"
+    "dotenv": "^16.5.0",
+    "node-cron": "^3.0.3"
   },
   "name": "projet-bot-discord",
   "version": "1.0.0",
