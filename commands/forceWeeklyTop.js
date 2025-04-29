@@ -44,6 +44,10 @@ module.exports = {
     }
 
     await channel.send({ embeds: [embed] });
-    await interaction.reply({ content: '✅ Top 5 vocal de la semaine envoyé avec succès !', ephemeral: true });
+
+    // Réinitialiser le fichier weeklyVocalTime.json (le vider)
+    fs.writeFileSync(weeklyFilePath, JSON.stringify({}, null, 2), 'utf8');
+    
+    await interaction.reply({ content: '✅ Top 5 vocal de la semaine envoyé avec succès et fichier réinitialisé !', ephemeral: true });
   },
 };
