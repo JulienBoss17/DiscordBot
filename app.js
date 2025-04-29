@@ -11,6 +11,12 @@ const { formatDistanceToNow } = require('date-fns');
 const { fr } = require('date-fns/locale');
 const { saveVoiceTime } = require('./utils/SaveVoiceTime');
 const { resetWeeklyVocalTime } = require('./utils/ResetWeeklyVocalTime');
+const { startAutoGraphUpdater } = require('./services/autoGraphUpdater');
+const { generateVoiceGraph } = require('./utils/generateVoiceGraph');
+const { AttachmentBuilder } = require('discord.js');
+
+
+
 
 
 
@@ -132,6 +138,32 @@ client.on('guildMemberRemove', async (member) => {
 
 // Gestion des interactions
 client.on('interactionCreate', async interaction => {
+  // 🎯 Si c'est une interaction de menu déroulant
+  if (interaction.isStringSelectMenu() && interaction.customId === 'select_user_stats') {
+    const userId = interaction.values[0];
+    const user = await interaction.client.users.fetch(userId);
+    const username = user.username;
+
+    try {
+      const buffer = await generateVoiceGraph(userId, username);
+      const attachment = new AttachmentBuilder(buffer, { name: 'graph.png' });
+
+      const embed = new EmbedBuilder()
+        .setTitle(`📊 Statistiques vocales - ${username}`)
+        .setImage('attachment://graph.png')
+        .setColor(0x00AEFF)
+        .setTimestamp();
+
+      await interaction.update({ embeds: [embed], files: [attachment] });
+    } catch (err) {
+      console.error(err);
+      await interaction.reply({ content: "Erreur lors de la génération du graphique.", ephemeral: true });
+    }
+
+    return; // On quitte ici, pas besoin d'exécuter une commande slash
+  }
+
+  // 🎯 Si c'est une commande slash
   if (!interaction.isCommand()) return;
 
   const command = client.commands.get(interaction.commandName);
@@ -144,6 +176,7 @@ client.on('interactionCreate', async interaction => {
     await interaction.reply({ content: '❌ Une erreur est survenue lors de l\'exécution de la commande.', ephemeral: true });
   }
 });
+
 
 const voiceTimeMap = new Map();
 
@@ -216,6 +249,7 @@ const blockedUsers = new Set();
 client.once('ready', () => {
   console.log(`✅ Connecté en tant que ${client.user.tag}`);
   resetWeeklyVocalTime(client); // <- ICI !
+  startAutoGraphUpdater(client, '1355638066424844486');
 });
 
 client.login(token)

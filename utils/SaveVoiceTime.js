@@ -1,18 +1,39 @@
 const fs = require('fs');
 const path = require('path');
 
+const daysOfWeek = {
+  mon: "Lun",
+  tue: "Mar",
+  wed: "Mer",
+  thu: "Jeu",
+  fri: "Ven",
+  sat: "Sam",
+  sun: "Dim"
+};
+
+const day = new Date().toLocaleString('en-US', { weekday: 'short' }).toLowerCase(); // mon, tue, etc.
+const frenchDay = daysOfWeek[day];
+
 function saveVoiceTime(userId, voiceTimeMap) {
   const joinTime = voiceTimeMap.get(userId);
   if (!joinTime) return;
 
   const timeSpent = Date.now() - joinTime;
-  const seconds = Math.floor(timeSpent / 1000);
+  const seconds = Math.floor(timeSpent / 1000); // ← On garde les secondes
 
-  // Fichiers de sauvegarde
   const files = [
-    './vocalTime.json',           // Historique complet
-    './weeklyVocalTime.json'       // Hebdomadaire
+    './vocalTime.json',
+    './weeklyVoiceTime.json'
   ];
+
+  const day = new Date().toLocaleString('en-US', { weekday: 'short' }).toLowerCase(); // mon, tue, etc.
+  const frenchDay = daysOfWeek[day];
+  
+  if (!frenchDay) {
+    console.error(`❌ Jour inconnu : ${day}`);
+    return;
+  }
+  
 
   for (const filePath of files) {
     let data = {};
@@ -28,14 +49,20 @@ function saveVoiceTime(userId, voiceTimeMap) {
       }
     }
 
-    // Mise à jour du temps pour l'utilisateur
-    data[userId] = (data[userId] || 0) + seconds;
+    if (filePath === './weeklyVoiceTime.json') {
+      if (!data[userId]) data[userId] = {};
+      if (!data[userId][frenchDay]) data[userId][frenchDay] = 0;
+
+      data[userId][frenchDay] += seconds; // ← Stockage en secondes
+    } else {
+      data[userId] = (data[userId] || 0) + seconds;
+    }
 
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
   }
 
-  console.log(`✅ Temps sauvegardé pour ${userId}: +${seconds}s`);
-  voiceTimeMap.delete(userId); // Nettoyage
+  console.log(`✅ Temps sauvegardé pour ${userId}: +${seconds} secondes`);
+  voiceTimeMap.delete(userId);
 }
 
 module.exports = { saveVoiceTime };

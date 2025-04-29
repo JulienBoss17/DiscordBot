@@ -14,7 +14,7 @@ module.exports = {
       return interaction.reply({ content: '❌ Tu n\'as pas les permissions nécessaires pour utiliser cette commande.', ephemeral: true });
     }
 
-    const weeklyFilePath = path.join(__dirname, '../weeklyVocalTime.json');
+    const weeklyFilePath = path.join(__dirname, '../weeklyVoiceTime.json');
     const CHANNEL_NAME = 'ʙᴏᴛ'; // 🔥 même nom que dans le reset automatique
 
     let weeklyData = {};
@@ -26,8 +26,14 @@ module.exports = {
       }
     }
 
+    // Tri et vérification des temps
     const sorted = Object.entries(weeklyData)
-      .sort(([, a], [, b]) => b - a)
+      .map(([userId, time]) => {
+        // Assurer que time est un nombre valide et pas NaN
+        const validTime = !isNaN(time) && time >= 0 ? time : 0; // Si time est invalide, le remplacer par 0
+        return [userId, validTime];
+      })
+      .sort(([, a], [, b]) => b - a) // Tri décroissant par le temps
       .slice(0, 5);
 
     const topList = sorted.map(([userId, time], index) => {
@@ -50,7 +56,7 @@ module.exports = {
 
     await channel.send({ embeds: [embed] });
 
-    // Réinitialiser le fichier weeklyVocalTime.json (le vider)
+    // Réinitialiser le fichier weeklyVoiceTime.json (le vider)
     fs.writeFileSync(weeklyFilePath, JSON.stringify({}, null, 2), 'utf8');
     
     await interaction.reply({ content: '✅ Top 5 vocal de la semaine envoyé avec succès et fichier réinitialisé !', ephemeral: true });

@@ -3,7 +3,7 @@ const path = require('path');
 const cron = require('node-cron');
 const { EmbedBuilder } = require('discord.js');
 
-const weeklyFilePath = path.join(__dirname, '../weeklyVocalTime.json');
+const weeklyFilePath = path.join(__dirname, '../weeklyVoiceTime.json');
 
 // 🔥 Tu peux changer le nom ici
 const CHANNEL_NAME = 'ʙᴏᴛ'; 
@@ -52,7 +52,7 @@ function resetWeeklyVocalTime(client) {
 
     // --- Reset fichier
     fs.writeFileSync(weeklyFilePath, '{}', 'utf8');
-    console.log('✅ weeklyVocalTime.json vidé !');
+    console.log('✅ weeklyVoiceTime.json vidé !');
   }, {
     timezone: 'Europe/Paris' // très important !
   });
