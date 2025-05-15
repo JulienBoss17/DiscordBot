@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dashboard Vocal Minimaliste</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap');
+
+  /* Reset */
+  * {
+    margin: 0; padding: 0; box-sizing: border-box;
+  }
+  html, body {
+    height: 100%;
+    background: linear-gradient(135deg, #1a033d, #3e075e);
+    font-family: 'Poppins', sans-serif;
+    color: #ddd;
+    user-select: none;
+  }
+
+  /* Canvas full screen behind */
+  #backgroundCanvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    z-index: 0;
+    pointer-events: none;
+    background: transparent;
+  }
+
+  /* Main container */
+  #container {
+    position: relative;
+    z-index: 10;
+    max-width: 900px;
+    margin: 100px auto 40px;
+    padding: 20px 30px;
+    background: rgba(58, 16, 107, 0.75);
+    border-radius: 15px;
+    box-shadow: 0 0 25px rgba(141, 71, 214, 0.7);
+    backdrop-filter: blur(10px);
+  }
+
+  /* Title */
+  h1 {
+    font-weight: 700;
+    font-size: 2.8rem;
+    margin-bottom: 35px;
+    color: #b499ff;
+    letter-spacing: 0.04em;
+    text-align: center;
+    text-shadow: 0 0 8px #b499ff88;
+  }
+
+  /* Graph container */
+  #vocalGraph3d {
+    width: 100%;
+    height: 600px;
+    border-radius: 12px;
+    background: rgba(255 255 255 / 0.05);
+    box-shadow:
+      inset 0 0 40px 2px #b499ff44,
+      0 0 30px 2px #8e49d6cc;
+    transition: box-shadow 0.4s ease;
+  }
+  #vocalGraph3d:hover {
+    box-shadow:
+      inset 0 0 50px 4px #b499ff88,
+      0 0 45px 6px #a06bffcc;
+  }
+
+  .navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 60px;
+  background: rgba(58, 16, 107, 0.6);
+  backdrop-filter: blur(12px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 30px;
+  z-index: 100;
+  box-shadow: 0 0 15px rgba(181, 153, 255, 0.4);
+  font-size: 1rem;
+}
+
+.nav-left {
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: #b499ff;
+  text-shadow: 0 0 6px #b499ff88;
+}
+
+.nav-right a {
+  color: #ddd;
+  text-decoration: none;
+  margin-left: 25px;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.nav-right a:hover {
+  color: #b499ff;
+}
+
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    #container {
+      margin: 40px 15px 30px;
+    }
+    h1 {
+      font-size: 2.2rem;
+    }
+    #vocalGraph3d {
+      height: 450px;
+    }
+  }
+  @media (max-width: 400px) {
+    h1 {
+      font-size: 1.6rem;
+    }
+    #vocalGraph3d {
+      height: 300px;
+    }
+  }
+</style>
+</head>
+<body>
+    <nav class="navbar">
+  <div class="nav-left">LOL PAS TROP FR</div>
+  <div class="nav-right">
+    <a href="/">Accueil</a>
+    <a href="/dashboard">Dashboard</a>
+    <a href="/logout">Déconnexion</a>
+  </div>
+</nav>
+
+
+<canvas id="backgroundCanvas"></canvas>
+
+<div id="container">
+  <h1>Bienvenue, <%= user.username %></h1>
+  <div id="vocalGraph3d"></div>
+</div>
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script>
+  // Background canvas: subtle animated glowing particles in violet hues
+  const canvas = document.getElementById('backgroundCanvas');
+  const ctx = canvas.getContext('2d');
+  let width, height;
+  let particles = [];
+
+  function resize() {
+    width = window.innerWidth;
+    height = window.innerHeight;
+    canvas.width = width * devicePixelRatio;
+    canvas.height = height * devicePixelRatio;
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  class Particle {
+    constructor() {
+      this.x = Math.random() * width;
+      this.y = Math.random() * height;
+      this.size = 1 + Math.random() * 2;
+      this.vx = (Math.random() - 0.5) * 0.2;
+      this.vy = (Math.random() - 0.5) * 0.2;
+      this.alpha = 0.15 + Math.random() * 0.25;
+      this.phase = Math.random() * 2 * Math.PI;
+    }
+    update() {
+      this.x += this.vx;
+      this.y += this.vy;
+
+      if (this.x < 0) this.x = width;
+      else if (this.x > width) this.x = 0;
+      if (this.y < 0) this.y = height;
+      else if (this.y > height) this.y = 0;
+
+      this.phase += 0.02;
+      this.alpha = 0.15 + 0.15 * Math.sin(this.phase);
+    }
+    draw() {
+      ctx.beginPath();
+      const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 8);
+      gradient.addColorStop(0, `rgba(181, 153, 255, ${this.alpha})`);
+      gradient.addColorStop(1, 'rgba(181, 153, 255, 0)');
+      ctx.fillStyle = gradient;
+      ctx.arc(this.x, this.y, this.size * 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(181, 153, 255, ${this.alpha + 0.3})`;
+      ctx.shadowColor = '#b499ffcc';
+      ctx.shadowBlur = 8;
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  particles = [];
+  for (let i = 0; i < 120; i++) {
+    particles.push(new Particle());
+  }
+
+  function animateBackground() {
+    ctx.clearRect(0, 0, width, height);
+
+    // Draw lines between close particles
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 100) {
+          const opacity = (100 - dist) / 300;
+          ctx.strokeStyle = `rgba(181, 153, 255, ${opacity})`;
+          ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.shadowColor = '#b499ffbb';
+          ctx.shadowBlur = 3;
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+        }
+      }
+    }
+
+    particles.forEach(p => {
+      p.update();
+      p.draw();
+    });
+
+    requestAnimationFrame(animateBackground);
+  }
+  animateBackground();
+
+  // Plotly 3D graph with violet color scheme and clean style
+  fetch('/api/vocal-time/<%= user.id %>')
+    .then(res => res.json())
+    .then(data => {
+      const labels = data.map(e => e.day);
+      const durations = data.map(e => e.duration / 60);
+
+const lineTrace = {
+  x: labels,
+  y: new Array(labels.length).fill('Vocal Time'),
+  z: durations,
+  mode: 'lines',
+  type: 'scatter3d',
+  line: {
+    color: '#00ffff',
+    width: 4,
+    dash: 'solid'
+  },
+  hoverinfo: 'skip'
+};
+
+const trace = {
+  x: labels,
+  y: new Array(labels.length).fill('Vocal Time'),
+  z: durations,
+  mode: 'markers',
+  type: 'scatter3d',
+  marker: {
+    size: 25,
+    color: durations,
+    colorscale: [
+      [0, '#00ffff'],
+      [0.5, '#0077ff'],
+      [1, '#ff00ff']
+    ],
+    cmin: 0,
+    cmax: Math.max(...durations),
+    colorbar: {
+      title: 'Minutes',
+      titleside: 'right',
+      thickness: 15,
+      outlinewidth: 0,
+      tickfont: { size: 12, color: '#0ff' },
+      titlefont: { size: 14, color: '#0ff' }
+    },
+    line: {
+      color: '#00ffff',
+      width: 2
+    },
+    opacity: 0.95
+  },
+  text: durations.map(d => d.toFixed(2) + ' min'),
+  hoverinfo: 'x+z+text'
+};
+
+const layout = {
+  showlegend: false, // ← ajoute cette ligne
+  paper_bgcolor: 'rgba(0,0,0,0)',
+  plot_bgcolor: 'rgba(0,0,0,0)',
+  font: { color: '#0ff', family: 'Orbitron, monospace' },
+  margin: {l: 0, r: 0, t: 0, b: 0},
+  scene: {
+    camera: {
+      eye: { x: -0.3, y: -2, z: 0.5 }  // caméra vue latérale
+    },
+    xaxis: {
+      title: 'Jour',
+      tickvals: labels,
+      ticktext: labels,
+      color: '#0ff',
+      gridcolor: 'rgba(0,255,255,0.1)',
+      zerolinecolor: 'rgba(0,255,255,0.3)',
+      showbackground: true,
+      backgroundcolor: 'rgba(0,0,0,0.3)',
+    },
+    yaxis: {
+      showticklabels: false,
+      title: '',
+      gridcolor: 'rgba(0,255,255,0.05)',
+      zerolinecolor: 'rgba(0,255,255,0.2)',
+      backgroundcolor: 'rgba(0,0,0,0.1)',
+      showbackground: true,
+    },
+    zaxis: {
+      title: 'Durée (min)',
+      color: '#0ff',
+      gridcolor: 'rgba(0,255,255,0.1)',
+      zerolinecolor: 'rgba(0,255,255,0.3)',
+      showbackground: true,
+      backgroundcolor: 'rgba(0,0,0,0.3)',
+    },
+    bgcolor: 'rgba(0,0,0,0)'
+  }
+};
+
+Plotly.newPlot('vocalGraph3d', [lineTrace, trace], layout, {
+  displayModeBar: false,
+  responsive: true,
+  scrollZoom: true,
+  doubleClick: 'reset'
+});
+
+
+      // Uncomment to enable slow rotation
+      /*
+      const graphDiv = document.getElementById('vocalGraph3d');
+      let angle = 0;
+      function rotateGraph() {
+        angle += 0.002;
+        Plotly.relayout(graphDiv, {
+          'scene.camera.eye': {
+            x: 1.5 * Math.cos(angle),
+            y: 1.5 * Math.sin(angle),
+            z: 0.7
+          }
+        });
+        requestAnimationFrame(rotateGraph);
+      }
+      rotateGraph();
+      */
+
+    })
+    .catch(e => {
+      console.error('Erreur chargement données vocales:', e);
+    });
+</script>
+
+</body>
+</html>

@@ -6,7 +6,7 @@ const { EmbedBuilder } = require('discord.js');
 const weeklyFilePath = path.join(__dirname, '../weeklyVoiceTime.json');
 
 // 🔥 Tu peux changer le nom ici
-const CHANNEL_NAME = 'ʙᴏᴛ'; 
+const CHANNEL_NAME = 'ʙᴏᴛ';
 
 function resetWeeklyVocalTime(client) {
   // 🔥 Cette ligne lance la tâche tous les dimanches à 23h59
@@ -22,11 +22,16 @@ function resetWeeklyVocalTime(client) {
       }
     }
 
-    // --- Top 5
+    // --- Calcul du total par utilisateur (somme des jours)
     const sorted = Object.entries(weeklyData)
+      .map(([userId, days]) => {
+        const totalSeconds = Object.values(days).reduce((acc, curr) => acc + curr, 0);
+        return [userId, totalSeconds];
+      })
       .sort(([, a], [, b]) => b - a)
       .slice(0, 5);
 
+    // --- Création de la liste du top 5 formatée
     const topList = sorted.map(([userId, time], index) => {
       const hours = Math.floor(time / 3600);
       const minutes = Math.floor((time % 3600) / 60);
@@ -42,7 +47,7 @@ function resetWeeklyVocalTime(client) {
 
     // --- Trouver le salon par NOM
     const channel = client.channels.cache.find(ch => ch.name === CHANNEL_NAME && ch.isTextBased());
-    
+
     if (channel) {
       await channel.send({ embeds: [embed] });
       console.log('✅ Top 5 envoyé dans le salon !');

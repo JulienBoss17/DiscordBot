@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Statistiques Vocales - LOL PAS TROP FR</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #1a033d, #3e075e);
+      color: #ddd;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    .container {
+      background: rgba(58, 16, 107, 0.75);
+      backdrop-filter: blur(10px);
+      padding: 40px 30px;
+      border-radius: 20px;
+      box-shadow: 0 0 25px rgba(141, 71, 214, 0.7);
+      text-align: center;
+      max-width: 500px;
+      width: 90%;
+    }
+
+    h1 {
+      font-size: 2.4rem;
+      margin-bottom: 25px;
+      color: #b499ff;
+      text-shadow: 0 0 8px #b499ff88;
+    }
+
+    .btn {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 14px 28px;
+      background-color: #b499ff;
+      color: #1a033d;
+      border-radius: 50px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+
+    .btn:hover {
+      background-color: #d4b5ff;
+      transform: scale(1.05);
+    }
+
+    .user-info {
+      margin-top: 20px;
+    }
+
+    .user-info img {
+      border-radius: 50%;
+      width: 90px;
+      height: 90px;
+      border: 3px solid #b499ff;
+      margin-bottom: 10px;
+      box-shadow: 0 0 12px #b499ff88;
+    }
+
+    .user-info p {
+      margin: 0;
+      font-weight: bold;
+      font-size: 1.2rem;
+      color: #eee;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Statistiques Vocales</h1>
+
+    <% if (user) { %>
+      <div class="user-info">
+        <img src="<%= user.avatarURL %>" alt="Avatar de <%= user.username %>" />
+        <p><%= user.username %></p>
+        <a href="/dashboard" class="btn">Voir le Dashboard</a>
+      </div>
+    <% } else { %>
+      <a href="/auth/discord" class="btn">Se connecter avec Discord</a>
+    <% } %>
+  </div>
+</body>
+</html>

@@ -11,13 +11,27 @@ const { formatDistanceToNow } = require('date-fns');
 const { fr } = require('date-fns/locale');
 const { saveVoiceTime } = require('./utils/SaveVoiceTime');
 const { resetWeeklyVocalTime } = require('./utils/ResetWeeklyVocalTime');
-const { startAutoGraphUpdater } = require('./services/autoGraphUpdater');
 const { generateVoiceGraph } = require('./utils/generateVoiceGraph');
 const { AttachmentBuilder } = require('discord.js');
+const session = require('express-session');
+const passport = require('passport');
+const authRoutes = require('./routes/auth');
+const express = require('express');
+const apiRoutes = require('./routes/api'); // adapte le chemin si nécessaire
+const ejs = require('ejs');
 
-
-
-
+const app = express();
+app.set("view engine", "ejs");
+app.set("views", "./views");
+app.use(session({
+  secret: 'allerParis',
+  resave: false,
+  saveUninitialized: false
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+// Middleware pour parser le corps des requêtes
+app.use(express.urlencoded({ extended: true }));
 
 
 // IDs importants
@@ -249,7 +263,6 @@ const blockedUsers = new Set();
 client.once('ready', () => {
   console.log(`✅ Connecté en tant que ${client.user.tag}`);
   resetWeeklyVocalTime(client); // <- ICI !
-  startAutoGraphUpdater(client, '1355638066424844486');
 });
 
 client.login(token)
@@ -258,3 +271,54 @@ client.login(token)
     console.error("❌ Erreur lors de la connexion au bot:", err);
     process.exit(1);
   });
+
+// Configuration du serveur Express
+app.use('/auth', authRoutes);
+app.use('/api', apiRoutes);
+
+
+function isAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) return next();
+  res.redirect('/');
+}
+
+app.get('/dashboard', isAuthenticated, (req, res) => {
+  res.render('dashboard', { user: req.user });
+});
+
+app.get('/api/vocal-time/:userId', (req, res) => {
+  const userId = req.params.userId;
+  fs.readFile('weeklyVoiceTime.json', 'utf8', (err, data) => {
+    if (err) return res.status(500).send('Erreur serveur');
+    const stats = JSON.parse(data);
+    const userStatsObj = stats[userId] || {};
+    const userData = Object.entries(userStatsObj).map(([day, duration]) => ({ day, duration }));
+    res.json(userData);
+  });
+});
+
+
+app.get('/', (req, res) => {
+  res.render('index', { user: req.user });
+});
+
+app.get('/logout', (req, res) => {
+  req.logout(err => {
+    if (err) {
+      console.error('Erreur pendant la déconnexion :', err);
+      return res.redirect('/dashboard');
+    }
+
+    req.session.destroy(() => {
+      res.clearCookie('connect.sid'); // Optionnel mais propre
+      res.redirect('/');
+    });
+  });
+});
+
+
+
+const PORT = 30224;
+app.listen(PORT, () => {
+  console.log(`🌐 Serveur web Express démarré sur le port ${PORT}`);
+});
