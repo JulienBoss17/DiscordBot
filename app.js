@@ -19,6 +19,8 @@ const authRoutes = require('./routes/auth');
 const express = require('express');
 const apiRoutes = require('./routes/api'); // adapte le chemin si nécessaire
 const ejs = require('ejs');
+const { updateUserMap, getUserMap } = require('./utils/userMap');
+
 
 const app = express();
 app.set("view engine", "ejs");
@@ -200,6 +202,10 @@ client.on('voiceStateUpdate', (oldState, newState) => {
   const oldChannel = oldState.channelId;
   const newChannel = newState.channelId;
 
+    // 🔁 Met à jour le userMap si disponible
+  const user = newState.member?.user;
+  if (user) updateUserMap(user);
+
   // Récupérer le salon AFK depuis le serveur
   const afkChannel = newState.guild.channels.cache.find(ch => ch.name === 'ᴀғᴋ');
 
@@ -299,8 +305,22 @@ app.get('/api/vocal-time/:userId', (req, res) => {
 
 
 app.get('/', (req, res) => {
-  res.render('index', { user: req.user });
+  const vocalPath = path.join(__dirname, '/vocalTime.json');
+  const weeklyPath = path.join(__dirname, '/weeklyVoiceTime.json');
+  const userMapPath = path.join(__dirname, '/userMap.json');
+
+  const vocalTime = JSON.parse(fs.readFileSync(vocalPath, 'utf8'));
+  const weeklyVoiceTime = JSON.parse(fs.readFileSync(weeklyPath, 'utf8'));
+  const userMap = JSON.parse(fs.readFileSync(userMapPath, 'utf8'));
+
+  res.render('index', {
+    user: req.user,
+    vocalTime,
+    weeklyVoiceTime,
+    userMap
+  });
 });
+
 
 app.get('/logout', (req, res) => {
   req.logout(err => {

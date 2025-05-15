@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Statistiques Vocales - LOL PAS TROP FR</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
   <style>
@@ -12,45 +12,125 @@
       box-sizing: border-box;
     }
 
-    body {
+    body, html {
       font-family: 'Poppins', sans-serif;
       background: linear-gradient(135deg, #1a033d, #3e075e);
       color: #ddd;
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      overflow: hidden;
+      min-height: 100vh;
+      overflow-x: hidden;
     }
 
-    .container {
+    #backgroundCanvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 60px;
+      background: rgba(58, 16, 107, 0.6);
+      backdrop-filter: blur(12px);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 30px;
+      z-index: 100;
+      box-shadow: 0 0 15px rgba(181, 153, 255, 0.4);
+      font-size: 1rem;
+    }
+
+    .nav-left {
+      font-weight: 700;
+      font-size: 1.2rem;
+      color: #b499ff;
+      text-shadow: 0 0 6px #b499ff88;
+    }
+
+    .nav-right a {
+      color: #ddd;
+      text-decoration: none;
+      margin-left: 25px;
+      font-weight: 500;
+      transition: color 0.3s ease;
+    }
+
+    .nav-right a:hover {
+      color: #b499ff;
+    }
+
+    .content {
+      position: relative;
+      z-index: 10;
+      max-width: 900px;
+      margin: 100px auto 60px;
+      padding: 20px;
+    }
+
+    .bubble {
       background: rgba(58, 16, 107, 0.75);
-      backdrop-filter: blur(10px);
-      padding: 40px 30px;
+      backdrop-filter: blur(12px);
+      padding: 25px 30px;
       border-radius: 20px;
       box-shadow: 0 0 25px rgba(141, 71, 214, 0.7);
-      text-align: center;
-      max-width: 500px;
-      width: 90%;
+      margin-bottom: 35px;
+      transition: transform 0.3s ease;
     }
 
-    h1 {
-      font-size: 2.4rem;
-      margin-bottom: 25px;
-      color: #b499ff;
-      text-shadow: 0 0 8px #b499ff88;
+    .bubble:hover {
+      transform: scale(1.02);
+      box-shadow:
+        0 0 40px #d3b5ffcc,
+        0 0 60px #b499ffcc,
+        0 0 90px #d4b5ffdd;
+    }
+
+    .header {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: #ffcaff;
+      text-shadow: 0 0 6px #ffb6ffcc;
+      text-align: center;
+    }
+
+    .user-info {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .user-info img {
+      border-radius: 50%;
+      width: 100px;
+      height: 100px;
+      border: 3px solid #b499ff;
+      box-shadow: 0 0 14px #b499ffbb;
+      margin-bottom: 10px;
+    }
+
+    .user-info p {
+      font-weight: 700;
+      font-size: 1.4rem;
+      color: #eee;
+      margin-bottom: 15px;
     }
 
     .btn {
-      display: inline-block;
-      margin-top: 20px;
-      padding: 14px 28px;
+      padding: 12px 28px;
       background-color: #b499ff;
       color: #1a033d;
       border-radius: 50px;
-      font-weight: 600;
+      font-weight: 700;
       text-decoration: none;
       transition: background-color 0.3s ease, transform 0.2s ease;
+      cursor: pointer;
+      display: inline-block;
     }
 
     .btn:hover {
@@ -58,40 +138,208 @@
       transform: scale(1.05);
     }
 
-    .user-info {
-      margin-top: 20px;
+    .entry {
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.07);
+      padding: 12px 18px;
+      border-radius: 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
     }
 
-    .user-info img {
-      border-radius: 50%;
-      width: 90px;
-      height: 90px;
-      border: 3px solid #b499ff;
-      margin-bottom: 10px;
-      box-shadow: 0 0 12px #b499ff88;
-    }
-
-    .user-info p {
-      margin: 0;
-      font-weight: bold;
+    .entry .rank {
+      width: 38px;
+      font-weight: 700;
       font-size: 1.2rem;
-      color: #eee;
+      color: #e3caff;
+      text-shadow: 0 0 8px #d4b5ffbb;
+    }
+
+    .entry .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      margin-right: 14px;
+      border: 2px solid #b499ffaa;
+      box-shadow: 0 0 8px #b499ffcc;
+    }
+
+    .entry .username {
+      flex: 1;
+      font-size: 1.05rem;
+      color: #ddd;
+      font-weight: 600;
+    }
+
+    .entry .time {
+      font-weight: 700;
+      color: #d4b5ff;
+      white-space: nowrap;
+      font-size: 1.1rem;
+      text-shadow: 0 0 6px #b499ffcc;
+    }
+
+    @media (max-width: 768px) {
+      .content {
+        margin-top: 80px;
+        padding: 15px;
+      }
+
+      .entry .username {
+        font-size: 0.95rem;
+      }
+
+      .entry .time {
+        font-size: 1rem;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Statistiques Vocales</h1>
+  <canvas id="backgroundCanvas"></canvas>
 
+  <nav class="navbar">
+    <div class="nav-left">LOL PAS TROP FR</div>
+    <div class="nav-right">
+      <a href="/">Accueil</a>
+      <a href="/dashboard">Dashboard</a>
+      <a href="/logout">Déconnexion</a>
+    </div>
+  </nav>
+
+  <div class="content">
     <% if (user) { %>
-      <div class="user-info">
-        <img src="<%= user.avatarURL %>" alt="Avatar de <%= user.username %>" />
-        <p><%= user.username %></p>
-        <a href="/dashboard" class="btn">Voir le Dashboard</a>
+      <div class="bubble">
+        <div class="user-info">
+          <img src="<%= user.avatarURL %>" alt="Avatar de <%= user.username %>" />
+          <p><%= user.username %></p>
+          <a href="/dashboard" class="btn">Voir le Dashboard</a>
+        </div>
+      </div>
+
+      <div class="bubble">
+        <div class="header">🏆 Classement Global (Top 10)</div>
+        <% Object.entries(vocalTime)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10)
+            .forEach(([userId, time], index) => {
+              const info = userMap[userId] || {};
+              const username = info.username || 'Utilisateur Inconnu';
+              const avatar = info.avatar 
+                ? `https://cdn.discordapp.com/avatars/${userId}/${info.avatar}.png` 
+                : 'https://cdn.discordapp.com/embed/avatars/0.png';
+        %>
+          <div class="entry">
+            <div class="rank">#<%= index + 1 %></div>
+            <img class="avatar" src="<%= info %>" alt="avatar">
+            <div class="username"><%= username %></div>
+            <div class="time"><%= Math.floor(time / 60) %> h</div>
+          </div>
+        <% }) %>
+      </div>
+
+      <div class="bubble">
+        <div class="header">📅 Classement Hebdo (Top 5)</div>
+        <% const totalWeekly = {};
+          Object.entries(weeklyVoiceTime).forEach(([userId, days]) => {
+            totalWeekly[userId] = Object.values(days).reduce((a, b) => a + b, 0);
+          });
+
+          Object.entries(totalWeekly)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .forEach(([userId, time], index) => {
+              const info = userMap[userId] || {};
+              const username = info.username || 'Utilisateur Inconnu';
+              const avatar = info.avatar 
+                ? `https://cdn.discordapp.com/avatars/${userId}/${info.avatar}.png` 
+                : 'https://cdn.discordapp.com/embed/avatars/0.png';
+        %>
+          <div class="entry">
+            <div class="rank">#<%= index + 1 %></div>
+            <img class="avatar" src="<%= avatar %>" alt="avatar">
+            <div class="username"><%= username %></div>
+            <div class="time"><%= Math.floor(time / 60) %> h</div>
+          </div>
+        <% }) %>
       </div>
     <% } else { %>
-      <a href="/auth/discord" class="btn">Se connecter avec Discord</a>
+      <div class="bubble" style="text-align:center;">
+        <a href="/auth/discord" class="btn">Se connecter avec Discord</a>
+      </div>
     <% } %>
   </div>
+
+  <script>
+    // Fond animé avec particules violettes
+    const canvas = document.getElementById('backgroundCanvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    let particles = [];
+
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width * devicePixelRatio;
+      canvas.height = height * devicePixelRatio;
+      canvas.style.width = width + 'px';
+      canvas.style.height = height + 'px';
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(devicePixelRatio, devicePixelRatio);
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    class Particle {
+      constructor() {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height;
+        this.size = 1 + Math.random() * 2;
+        this.vx = (Math.random() - 0.5) * 0.2;
+        this.vy = (Math.random() - 0.5) * 0.2;
+        this.alpha = 0.15 + Math.random() * 0.25;
+        this.phase = Math.random() * 2 * Math.PI;
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        if (this.x < 0) this.x = width;
+        else if (this.x > width) this.x = 0;
+        if (this.y < 0) this.y = height;
+        else if (this.y > height) this.y = 0;
+        this.phase += 0.02;
+        this.alpha = 0.15 + 0.15 * Math.sin(this.phase);
+      }
+      draw() {
+        ctx.beginPath();
+        const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 8);
+        grad.addColorStop(0, `rgba(181, 153, 255, ${this.alpha})`);
+        grad.addColorStop(1, 'rgba(181, 153, 255, 0)');
+        ctx.fillStyle = grad;
+        ctx.arc(this.x, this.y, this.size * 8, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(181, 153, 255, ${this.alpha + 0.3})`;
+        ctx.shadowColor = '#b499ffcc';
+        ctx.shadowBlur = 8;
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+    }
+
+    for (let i = 0; i < 100; i++) {
+      particles.push(new Particle());
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, width, height);
+      particles.forEach(p => { p.update(); p.draw(); });
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
 </body>
 </html>
