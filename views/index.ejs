@@ -232,9 +232,9 @@
         %>
           <div class="entry">
             <div class="rank">#<%= index + 1 %></div>
-            <img class="avatar" src="<%= info %>" alt="avatar">
+            <img class="avatar" src="<%= avatar %>" alt="avatar">
             <div class="username"><%= username %></div>
-            <div class="time"><%= Math.floor(time / 60) %> h</div>
+            <div class="time"><%= Math.floor(time / 3600) %> h</div>
           </div>
         <% }) %>
       </div>
@@ -260,7 +260,7 @@
             <div class="rank">#<%= index + 1 %></div>
             <img class="avatar" src="<%= avatar %>" alt="avatar">
             <div class="username"><%= username %></div>
-            <div class="time"><%= Math.floor(time / 60) %> h</div>
+            <div class="time"><%= Math.floor(time / 3600) %> h</div>
           </div>
         <% }) %>
       </div>

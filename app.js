@@ -108,13 +108,11 @@ client.on('guildMemberAdd', async (member) => {
       .setColor(0x1E2A78)
       .setDescription(
         `Tu as rejoint **LOL PAS TROP FR** !🫡 \n
-        ❗ Avant toutes choses, merci de bien choisir un ou plusieurs ${rolesMention} afin de pouvoir avoir accès à l'intégralité du serveur !\n
-        🖱️ Reste détendu et ne prend pas trop les games au sérieux!\n`
+        🔴  Merci de bien  choisir un ou plusieurs ⁠rᴏʟᴇs afin de pouvoir avoir accès à l'intégralité du serveur !🔴 \n
+        Serveur discord crée dans le but de chill et jouer à plusieurs tout en détente et dans la bonne humeur ! 🙏\n`
       )
       .setThumbnail(member.user.displayAvatarURL())
       .addFields(
-        { name: '🎤 Présentation', value: 'Serveur discord crée dans le but de chill et jouer à plusieurs tout en détente et dans la bonne humeur ! 🙏 ', inline: false },
-        { name: '🛡️ Règles', value: `Merci de lire les règles ${rulesMention}.`, inline: true },
         {
           name: '📊 Infos Serveur',
           value: `Nom : ${name}\nMembres : ${memberCount}`,
