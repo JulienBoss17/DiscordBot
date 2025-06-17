@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "canvas": "^3.1.0",
     "chart.js": "^4.4.9",
     "chartjs-node-canvas": "^5.0.0",
     "date-fns": "^4.1.0",
@@ -10,9 +11,11 @@
     "express-session": "^1.18.1",
     "fs": "^0.0.1-security",
     "node-cron": "^3.0.3",
+    "node-fetch": "^2.7.0",
     "passport": "^0.7.0",
     "passport-discord": "^0.1.4",
-    "path": "^0.12.7"
+    "path": "^0.12.7",
+    "sharp": "^0.34.2"
   },
   "name": "projet-bot-discord",
   "version": "1.0.0",
