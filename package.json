@@ -15,6 +15,7 @@
     "passport": "^0.7.0",
     "passport-discord": "^0.1.4",
     "path": "^0.12.7",
+    "play-dl": "^1.9.7",
     "sharp": "^0.34.2"
   },
   "name": "projet-bot-discord",
