@@ -20,6 +20,7 @@ const express = require('express');
 const apiRoutes = require('./routes/api'); // adapte le chemin si nécessaire
 const ejs = require('ejs');
 const { updateUserMap, getUserMap } = require('./utils/userMap');
+const horoscopeCommand = require('./commands/horoscope'); // ton fichier API
 
 
 const app = express();
@@ -93,10 +94,8 @@ const rest = new REST({ version: '9' }).setToken(token);
 
 // message de bienvenue
 client.on('guildMemberAdd', async (member) => {
-  const channel = member.guild.channels.cache.find((ch) => ch.name === 'ʙɪᴇɴᴠᴇɴᴜᴇ');
-  const rolesChannel = member.guild.channels.cache.find(ch => ch.name === 'rᴏʟᴇs');
+  const channel = member.guild.channels.cache.find((ch) => ch.name === 'bienvenue');
   const rulesChannel = member.guild.channels.cache.find(ch => ch.name === 'ʀᴜʟᴇs');
-  const rolesMention = rolesChannel ? `<#${rolesChannel.id}>` : '#rᴏʟᴇs';
   const rulesMention = rulesChannel ? `<#${rulesChannel.id}>` : '#ʀᴜʟᴇs';
 
   if (!channel) return;
@@ -107,8 +106,7 @@ client.on('guildMemberAdd', async (member) => {
     const welcomeEmbed = new EmbedBuilder()
       .setColor(0x1E2A78)
       .setDescription(
-        `Tu as rejoint **LOL PAS TROP FR** !🫡 \n
-        🔴  Merci de bien  choisir un ou plusieurs ${rolesMention} afin de pouvoir avoir accès à l'intégralité du serveur !🔴 \n
+        `Tu as rejoint le**Serveur de Julien** !🫡 \n
         Serveur discord crée dans le but de chill et jouer à plusieurs tout en détente et dans la bonne humeur ! 🙏\n`
       )
       .setThumbnail(member.user.displayAvatarURL())
@@ -150,9 +148,22 @@ client.on('guildMemberRemove', async (member) => {
   channel.send({ embeds: [leaveEmbed] });
 });
 
-// Gestion des interactions
 client.on('interactionCreate', async interaction => {
-  // 🎯 Si c'est une interaction de menu déroulant
+
+  // 🎯 Si c'est une interaction de menu horoscope
+  if (interaction.isStringSelectMenu() && interaction.customId === 'select-sign') {
+    try {
+      await horoscopeCommand.handleSelect(interaction);
+    } catch (err) {
+      console.error(err);
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({ content: '❌ Une erreur est survenue.', ephemeral: true });
+      }
+    }
+    return; // important pour ne pas exécuter le reste
+  }
+
+  // 🎯 Si c'est une interaction de menu vocal existant
   if (interaction.isStringSelectMenu() && interaction.customId === 'select_user_stats') {
     const userId = interaction.values[0];
     const user = await interaction.client.users.fetch(userId);
@@ -174,7 +185,7 @@ client.on('interactionCreate', async interaction => {
       await interaction.reply({ content: "Erreur lors de la génération du graphique.", ephemeral: true });
     }
 
-    return; // On quitte ici, pas besoin d'exécuter une commande slash
+    return;
   }
 
   // 🎯 Si c'est une commande slash
@@ -192,6 +203,7 @@ client.on('interactionCreate', async interaction => {
 });
 
 
+
 const voiceTimeMap = new Map();
 
 client.on('voiceStateUpdate', (oldState, newState) => {
@@ -205,7 +217,7 @@ client.on('voiceStateUpdate', (oldState, newState) => {
   if (user) updateUserMap(user);
 
   // Récupérer le salon AFK depuis le serveur
-  const afkChannel = newState.guild.channels.cache.find(ch => ch.name === 'ᴀғᴋ');
+  const afkChannel = newState.guild.channels.cache.find(ch => ch.name === 'AFK');
 
   if (!afkChannel) {
     console.log('Salon AFK non trouvé');

@@ -6,7 +6,7 @@ const { EmbedBuilder } = require('discord.js');
 const weeklyFilePath = path.join(__dirname, '../weeklyVoiceTime.json');
 
 // 🔥 Tu peux changer le nom ici
-const CHANNEL_NAME = 'ʙᴏᴛ';
+const CHANNEL_NAME = 'classement-hebdo';
 
 function resetWeeklyVocalTime(client) {
   // 🔥 Cette ligne lance la tâche tous les dimanches à 23h59
