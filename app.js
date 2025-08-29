@@ -276,7 +276,7 @@ client.on('voiceStateUpdate', (oldState, newState) => {
 const blockedUsers = new Set();
 
 // Lancement du bot
-client.once('ready', () => {
+client.once('clientReady', () => {
   console.log(`✅ Connecté en tant que ${client.user.tag}`);
   resetWeeklyVocalTime(client); // <- ICI !
 });
